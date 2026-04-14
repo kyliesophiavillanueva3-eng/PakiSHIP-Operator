@@ -2,37 +2,68 @@
 
 React Native mobile app for PakiSHIP hub operators. Built with Expo + TypeScript.
 
-## Setup
+---
 
+## Prerequisites
+
+Make sure you have these installed before starting:
+
+- [Node.js](https://nodejs.org/) (v18 or higher)
+- [Git](https://git-scm.com/)
+- [Expo Go](https://expo.dev/go) app on your phone (iOS or Android)
+
+---
+
+## Step-by-Step Setup
+
+**1. Clone the repository**
+```bash
+git clone https://github.com/kyliesophiavillanueva3-eng/PakiSHIP-Operator.git
+cd PakiSHIP-Operator
+```
+
+**2. Install dependencies**
 ```bash
 npm install
-Copy-Item .env.example .env   # Windows PowerShell
-# cp .env.example .env        # macOS/Linux
 ```
 
-Set values in `.env`:
-- `RN_PUBLIC_APP_NAME`
-- `RN_PUBLIC_APP_ENV` (development | staging | production)
-- `RN_PUBLIC_API_BASE_URL`
+**3. Set up environment variables**
 
-## Run
+Windows (PowerShell):
+```powershell
+Copy-Item .env.example .env
+```
 
+Mac/Linux:
+```bash
+cp .env.example .env
+```
+
+Then open `.env` and fill in the values:
+```
+RN_PUBLIC_APP_NAME=PakiSHIP Operator
+RN_PUBLIC_APP_ENV=development
+RN_PUBLIC_API_BASE_URL=your_api_url_here
+```
+
+**4. Start the development server**
 ```bash
 npm start
-npm run android
 ```
 
-## CI/CD
+**5. Open in Expo Go**
 
-Set repository variable `MOBILE_SINGLE_SYSTEMS_JSON`:
-```json
-{ "name": "PakiSHIP-Operator", "dir": ".", "mobile_stack": "react-native" }
-```
+- A QR code will appear in your terminal
+- Open the **Expo Go** app on your phone
+- Scan the QR code
+- The app will load on your device
 
-Pipeline triggers on push/PR to `test`, `uat`, `main`.
+> Make sure your phone and computer are on the **same Wi-Fi network**.
 
-## Notes
+---
 
-- `android/` is committed. `ios/` must be generated on macOS via `npx expo prebuild --platform ios`.
-- All source files are `.ts`/`.tsx` — no `.js`/`.jsx` in app source dirs.
-- Run `npm run verify` before creating a PR.
+## Troubleshooting
+
+- If the QR code doesn't work, try pressing `w` to switch to tunnel mode in the terminal
+- If dependencies fail, delete `node_modules` and run `npm install` again
+- If the app crashes on load, make sure your `.env` values are filled in correctly
