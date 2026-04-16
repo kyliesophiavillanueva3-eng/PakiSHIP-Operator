@@ -103,7 +103,7 @@ export function Header({ showBack, onBackPress, onHelpPress, onHelpMeasure }: He
             onPress={onBackPress || (() => router.back())}
             style={styles.backBtn}
           >
-            <Feather name="arrow-left" size={22} color={COLORS.text} />
+            <Feather name="arrow-left" size={22} color={COLORS.primary} />
           </TouchableOpacity>
         ) : (
           <Image
@@ -113,16 +113,19 @@ export function Header({ showBack, onBackPress, onHelpPress, onHelpMeasure }: He
           />
         )}
       </View>
+      {showBack && (
+        <Text style={styles.headerTitle}>Profile Settings</Text>
+      )}
 
       <View style={styles.right}>
         {/* Bell with notification dot */}
-        <TouchableOpacity style={styles.circleBtn} onPress={handleBellPress}>
+        {!showBack && <TouchableOpacity style={styles.circleBtn} onPress={handleBellPress}>
           <Feather name="bell" size={17} color={COLORS.primary} />
           {unreadCount > 0 && <View style={styles.notifDot} />}
-        </TouchableOpacity>
+        </TouchableOpacity>}
 
         {/* Help */}
-        <TouchableOpacity
+        {!showBack && <TouchableOpacity
           ref={helpBtnRef}
           style={styles.circleBtn}
           onPress={() => {
@@ -140,20 +143,20 @@ export function Header({ showBack, onBackPress, onHelpPress, onHelpMeasure }: He
           }}
         >
           <Feather name="help-circle" size={17} color={COLORS.primary} />
-        </TouchableOpacity>
+        </TouchableOpacity>}
 
         {/* Profile */}
-        <TouchableOpacity
+        {!showBack && <TouchableOpacity
           style={styles.profileBtn}
           onPress={() => router.push("/profile")}
         >
           <Feather name="user" size={17} color={COLORS.primary} />
-        </TouchableOpacity>
+        </TouchableOpacity>}
 
         {/* Logout */}
-        <TouchableOpacity style={styles.logoutBtn}>
+        {!showBack && <TouchableOpacity style={styles.logoutBtn}>
           <Feather name="log-out" size={19} color={COLORS.red} />
-        </TouchableOpacity>
+        </TouchableOpacity>}
       </View>
 
       {/* Notification Dropdown */}
@@ -270,6 +273,16 @@ const styles = StyleSheet.create({
   },
   backBtn: {
     padding: 4,
+  },
+  headerTitle: {
+    fontSize: 17,
+    fontFamily: "Poppins_700Bold",
+    color: COLORS.text,
+    position: "absolute",
+    left: 0,
+    right: 0,
+    textAlign: "center",
+    bottom: 10,
   },
   right: {
     flexDirection: "row",

@@ -199,7 +199,7 @@ export default function HomeScreen() {
             onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium); setShowScan(true); }}
             activeOpacity={0.85}
           >
-            <MaterialCommunityIcons name="qrcode-scan" size={36} color={COLORS.white} />
+            <MaterialCommunityIcons name="qrcode-scan" size={48} color={COLORS.white} />
             <Text style={styles.scanParcelLabel}>SCAN PARCEL</Text>
             <Text style={styles.scanParcelSub}>Register via QR code</Text>
           </TouchableOpacity>
@@ -210,49 +210,58 @@ export default function HomeScreen() {
             onPress={() => router.push("/manual-entry")}
             activeOpacity={0.85}
           >
-            <Feather name="smartphone" size={32} color={COLORS.primary} />
+            <Feather name="smartphone" size={44} color={COLORS.primary} />
             <Text style={styles.manualEntryLabel}>MANUAL ENTRY</Text>
             <Text style={styles.manualEntrySub}>Type tracking number</Text>
           </TouchableOpacity>
         </View>
 
         {/* Delivery Bin Capacity */}
-        <View style={styles.capacityCard}>
-          <View style={styles.capacityTopRow}>
-            <View style={styles.capacityLeft}>
-              <View style={styles.capacityIconWrap}>
-                <Feather name="package" size={16} color={COLORS.primary} />
+        {(() => {
+          const pct = 72;
+          const fillColor = pct >= 90 ? COLORS.red : pct >= 70 ? COLORS.orange : COLORS.primary;
+          const pctColor = pct >= 90 ? COLORS.red : pct >= 70 ? COLORS.orange : COLORS.primary;
+          const warningIcon = pct >= 90 ? "alert-triangle" : "alert-circle";
+          const warningLabel = pct >= 90 ? "Almost Full!" : pct >= 70 ? "Getting Full" : "Good Capacity";
+          return (
+            <View style={styles.capacityCard}>
+              <View style={styles.capacityTopRow}>
+                <View style={styles.capacityLeft}>
+                  <View style={styles.capacityIconWrap}>
+                    <Feather name="package" size={16} color={COLORS.primary} />
+                  </View>
+                  <View>
+                    <Text style={styles.capacityTitle}>Delivery Bin Capacity</Text>
+                    <Text style={styles.capacitySubtitle}>BGC Central Hub — Bin A</Text>
+                  </View>
+                </View>
+                <Text style={[styles.capacityPct, { color: pctColor }]}>{pct}%</Text>
               </View>
-              <View>
-                <Text style={styles.capacityTitle}>Delivery Bin Capacity</Text>
-                <Text style={styles.capacitySubtitle}>BGC Central Hub — Bin A</Text>
+              <View style={styles.progressWrapper}>
+                <Image
+                  source={require("@/assets/images/mascot-analytics.png")}
+                  style={[styles.mascotImg, { left: `${pct}%` as any, transform: [{ translateX: -52 }] }]}
+                  resizeMode="contain"
+                />
+                <View style={styles.progressTrack}>
+                  <View style={[styles.progressFill, { width: `${pct}%` as any, backgroundColor: fillColor }]} />
+                </View>
+              </View>
+              <View style={styles.progressLabels}>
+                <Text style={styles.progressEdge}>0%</Text>
+                <View style={styles.warningRow}>
+                  <Feather name={warningIcon as any} size={11} color={pctColor} />
+                  <Text style={[styles.warningText, { color: pctColor }]}>{warningLabel}</Text>
+                </View>
+                <Text style={styles.progressEdge}>100%</Text>
               </View>
             </View>
-            <Text style={styles.capacityPct}>72%</Text>
-          </View>
-          <View style={styles.progressWrapper}>
-            <Image
-              source={require("@/assets/images/mascot-analytics.png")}
-              style={[styles.mascotImg, { left: `${72}%` as any, transform: [{ translateX: -52 }] }]}
-              resizeMode="contain"
-            />
-            <View style={styles.progressTrack}>
-              <View style={[styles.progressFill, { width: "72%" as any }]} />
-            </View>
-          </View>
-          <View style={styles.progressLabels}>
-            <Text style={styles.progressEdge}>0%</Text>
-            <View style={styles.warningRow}>
-              <Feather name="alert-circle" size={11} color={COLORS.orange} />
-              <Text style={styles.warningText}>Getting Full</Text>
-            </View>
-            <Text style={styles.progressEdge}>100%</Text>
-          </View>
-        </View>
+          );
+        })()}
 
         {/* Ready for Operations */}
         <View style={styles.readyRow}>
-          <Feather name="package" size={22} color={COLORS.border} />
+          <Feather name="package" size={52} color="rgba(43,169,155,0.18)" />
           <Text style={styles.readyText}>READY FOR OPERATIONS</Text>
         </View>
       </ScrollView>
@@ -305,10 +314,10 @@ const styles = StyleSheet.create({
   actionBtnLabelActive: { color: COLORS.white },
 
   /* Scan Parcel + Manual Entry */
-  scanParcelBtn: { flex: 1, backgroundColor: COLORS.primary, borderRadius: 18, paddingVertical: 24, alignItems: "center", justifyContent: "center", gap: 8 },
+  scanParcelBtn: { flex: 1, backgroundColor: COLORS.primary, borderRadius: 32, paddingVertical: 40, alignItems: "center", justifyContent: "center", gap: 10 },
   scanParcelLabel: { fontSize: 13, fontFamily: "Poppins_700Bold", color: COLORS.white, letterSpacing: 0.5 },
   scanParcelSub: { fontSize: 11, fontFamily: "Poppins_400Regular", color: "rgba(255,255,255,0.8)" },
-  manualEntryBtn: { flex: 1, backgroundColor: COLORS.cardBg, borderRadius: 18, paddingVertical: 24, alignItems: "center", justifyContent: "center", gap: 8, borderWidth: 1, borderColor: COLORS.border },
+  manualEntryBtn: { flex: 1, backgroundColor: COLORS.cardBg, borderRadius: 32, paddingVertical: 40, alignItems: "center", justifyContent: "center", gap: 10, borderWidth: 1, borderColor: COLORS.border },
   manualEntryLabel: { fontSize: 13, fontFamily: "Poppins_700Bold", color: COLORS.text, letterSpacing: 0.5 },
   manualEntrySub: { fontSize: 11, fontFamily: "Poppins_400Regular", color: COLORS.textSecondary },
 
@@ -319,7 +328,7 @@ const styles = StyleSheet.create({
   capacityIconWrap: { width: 36, height: 36, borderRadius: 10, backgroundColor: COLORS.primaryLight, alignItems: "center", justifyContent: "center" },
   capacityTitle: { fontSize: 14, fontFamily: "Poppins_700Bold", color: COLORS.text },
   capacitySubtitle: { fontSize: 11, fontFamily: "Poppins_400Regular", color: COLORS.textSecondary },
-  capacityPct: { fontSize: 24, fontFamily: "Poppins_700Bold", color: COLORS.orange },
+  capacityPct: { fontSize: 24, fontFamily: "Poppins_700Bold" },
   progressWrapper: { position: "relative", paddingTop: 36 },
   progressTrack: { height: 14, backgroundColor: COLORS.background, borderRadius: 7, overflow: "hidden" },
   progressFill: { height: "100%", borderRadius: 7, backgroundColor: COLORS.orange },
@@ -327,8 +336,8 @@ const styles = StyleSheet.create({
   progressEdge: { fontSize: 11, fontFamily: "Poppins_400Regular", color: COLORS.textMuted },
   warningRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   warningText: { fontSize: 11, fontFamily: "Poppins_500Medium", color: COLORS.orange },
-  readyRow: { alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 8 },
-  readyText: { fontSize: 11, fontFamily: "Poppins_600SemiBold", color: COLORS.border, letterSpacing: 1 },
+  readyRow: { alignItems: "center", justifyContent: "center", gap: 14, paddingVertical: 16, marginTop: -8 },
+  readyText: { fontSize: 13, fontFamily: "Poppins_700Bold", color: "rgba(43,169,155,0.22)", letterSpacing: 3 },
 
   statsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   statCard: { width: "48%", flexShrink: 1, backgroundColor: COLORS.cardBg, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: COLORS.border, gap: 8, alignItems: "center" },

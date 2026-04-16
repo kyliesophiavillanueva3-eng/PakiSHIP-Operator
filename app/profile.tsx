@@ -27,6 +27,7 @@ interface InputFieldProps {
   icon: React.ReactNode;
   editable?: boolean;
   keyboardType?: "default" | "email-address" | "phone-pad";
+  isEditing?: boolean;
 }
 
 function InputField({
@@ -36,17 +37,18 @@ function InputField({
   icon,
   editable = true,
   keyboardType = "default",
+  isEditing = false,
 }: InputFieldProps) {
   return (
     <View style={styles.fieldWrap}>
       <Text style={styles.fieldLabel}>{label}</Text>
-      <View style={styles.fieldInner}>
+      <View style={[styles.fieldInner, isEditing && editable && styles.fieldInnerActive]}>
         <View style={styles.fieldIcon}>{icon}</View>
         <TextInput
           style={styles.fieldInput}
           value={value}
           onChangeText={onChangeText}
-          editable={editable}
+          editable={isEditing && editable}
           keyboardType={keyboardType}
           placeholderTextColor={COLORS.textMuted}
         />
@@ -59,9 +61,9 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const bottomPad = Platform.OS === "web" ? 34 : insets.bottom + 16;
 
-  const [activeTab, setActiveTab] = useState<"profile" | "id" | "preferences">("profile");
-  const [fullName, setFullName] = useState("");
-  const [email] = useState("operator@pakiship.ph");
+  const [activeTab, setActiveTab] = useState<"profile" | "compliance" | "preferences">("profile");
+  const [fullName, setFullName] = useState("Juan Dela Cruz");
+  const [email] = useState("juandelacruz@pakiship.ph");
   const [phone, setPhone] = useState("09123456789");
   const [twoFA, setTwoFA] = useState(false);
   const [prefToggles, setPrefToggles] = useState({ email: true, sms: true, parcel: true });
@@ -72,7 +74,20 @@ export default function ProfileScreen() {
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
-  const [govIdUri, setGovIdUri] = useState<string | null>(null);
+
+  // Compliance documents
+  const [docs, setDocs] = useState<{ dti: string | null; permit: string | null; location: string | null }>({
+    dti: "verified",
+    permit: "verified",
+    location: "verified",
+  });
+  const [refreshingDoc, setRefreshingDoc] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [birthDate, setBirthDate] = useState("06/01/2005");
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [tempMonth, setTempMonth] = useState("06");
+  const [tempDay, setTempDay] = useState("01");
+  const [tempYear, setTempYear] = useState("2005");
 
   async function pickImage(onPicked: (uri: string) => void) {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -87,9 +102,23 @@ export default function ProfileScreen() {
     }
   }
 
-  const tabs: { key: "profile" | "id" | "preferences"; label: string }[] = [
+  async function pickDocument(docKey: keyof typeof docs) {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") return;
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.All,
+      allowsEditing: false,
+      quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setDocs((prev) => ({ ...prev, [docKey]: result.assets[0].uri }));
+    }
+    setRefreshingDoc(null);
+  }
+
+  const tabs: { key: "profile" | "compliance" | "preferences"; label: string }[] = [
     { key: "profile", label: "Profile" },
-    { key: "id", label: "ID & Schedule" },
+    { key: "compliance", label: "Compliance" },
     { key: "preferences", label: "Preferences" },
   ];
 
@@ -185,13 +214,112 @@ export default function ProfileScreen() {
           </View>
         </KeyboardAvoidingView>
       </Modal>
+      {/* Date Picker Modal — Calendar Grid */}
+      <Modal visible={showDatePicker} transparent animationType="slide" onRequestClose={() => setShowDatePicker(false)}>
+        <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setShowDatePicker(false)} />
+        <View style={styles.calendarSheet}>
+          <View style={styles.dragHandle} />
+          {(() => {
+            const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+            const selMonth = parseInt(tempMonth) - 1;
+            const selYear = parseInt(tempYear);
+            const selDay = parseInt(tempDay);
+            const firstDay = new Date(selYear, selMonth, 1).getDay();
+            const daysInMonth = new Date(selYear, selMonth + 1, 0).getDate();
+            const prevDays = new Date(selYear, selMonth, 0).getDate();
+            const today = new Date();
+            const cells: { day: number; cur: boolean }[] = [];
+            for (let i = firstDay - 1; i >= 0; i--) cells.push({ day: prevDays - i, cur: false });
+            for (let d = 1; d <= daysInMonth; d++) cells.push({ day: d, cur: true });
+            while (cells.length % 7 !== 0) cells.push({ day: cells.length - daysInMonth - firstDay + 1, cur: false });
+            const weeks: typeof cells[] = [];
+            for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+            return (
+              <>
+                <View style={styles.calHeader}>
+                  <TouchableOpacity onPress={() => {
+                    const d = new Date(selYear, selMonth - 1, 1);
+                    setTempMonth(String(d.getMonth() + 1).padStart(2, "0"));
+                    setTempYear(String(d.getFullYear()));
+                  }}>
+                    <Feather name="chevron-left" size={20} color={COLORS.text} />
+                  </TouchableOpacity>
+                  <Text style={styles.calMonthYear}>{months[selMonth]} {selYear}</Text>
+                  <TouchableOpacity onPress={() => {
+                    const d = new Date(selYear, selMonth + 1, 1);
+                    setTempMonth(String(d.getMonth() + 1).padStart(2, "0"));
+                    setTempYear(String(d.getFullYear()));
+                  }}>
+                    <Feather name="chevron-right" size={20} color={COLORS.text} />
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.calDayNames}>
+                  {["Su","Mo","Tu","We","Th","Fr","Sa"].map(d => (
+                    <Text key={d} style={styles.calDayName}>{d}</Text>
+                  ))}
+                </View>
+                {weeks.map((week, wi) => (
+                  <View key={wi} style={styles.calWeek}>
+                    {week.map((cell, ci) => {
+                      const isSelected = cell.cur && cell.day === selDay;
+                      const isToday = cell.cur && cell.day === today.getDate() && selMonth === today.getMonth() && selYear === today.getFullYear();
+                      return (
+                        <TouchableOpacity
+                          key={ci}
+                          style={[styles.calDay, isSelected && styles.calDaySelected]}
+                          onPress={() => { if (cell.cur) setTempDay(String(cell.day).padStart(2, "0")); }}
+                          activeOpacity={cell.cur ? 0.7 : 1}
+                        >
+                          <Text style={[
+                            styles.calDayText,
+                            !cell.cur && styles.calDayTextOther,
+                            isSelected && styles.calDayTextSelected,
+                            isToday && !isSelected && styles.calDayTextToday,
+                          ]}>{cell.day}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                ))}
+                <View style={styles.calFooter}>
+                  <TouchableOpacity onPress={() => { setTempDay(""); setTempMonth(""); setTempYear(""); }}>
+                    <Text style={styles.calFooterBtn}>Clear</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => {
+                    const t = new Date();
+                    setTempMonth(String(t.getMonth() + 1).padStart(2, "0"));
+                    setTempDay(String(t.getDate()).padStart(2, "0"));
+                    setTempYear(String(t.getFullYear()));
+                  }}>
+                    <Text style={styles.calFooterBtn}>Today</Text>
+                  </TouchableOpacity>
+                </View>
+                <View style={styles.dialogActions}>
+                  <TouchableOpacity style={styles.dialogCancelBtn} onPress={() => setShowDatePicker(false)} activeOpacity={0.75}>
+                    <Text style={styles.dialogCancelText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.dialogConfirmBtn}
+                    onPress={() => {
+                      setBirthDate(`${tempMonth.padStart(2,"0")}/${tempDay.padStart(2,"0")}/${tempYear}`);
+                      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                      setShowDatePicker(false);
+                    }}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.dialogConfirmText}>Confirm</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            );
+          })()}
+        </View>
+      </Modal>
       <ScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[styles.scroll, { paddingBottom: bottomPad }]}
       >
-        <Text style={styles.pageTitle}>Profile Settings</Text>
-
         {/* Avatar */}
         <View style={styles.avatarSection}>
           <View style={styles.avatarWrap}>
@@ -236,125 +364,173 @@ export default function ProfileScreen() {
 
         {activeTab === "profile" && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Personal Details</Text>
+            <View style={styles.sectionTitleRow}>
+              <Text style={styles.sectionTitle}>Personal Details</Text>
+              <TouchableOpacity
+                style={[styles.editBtn, isEditing && styles.editBtnActive]}
+                onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setIsEditing(v => !v); }}
+                activeOpacity={0.8}
+              >
+                <Feather name="edit-2" size={16} color={isEditing ? COLORS.red : COLORS.primary} />
+              </TouchableOpacity>
+            </View>
             <InputField
               label="FULL NAME"
               value={fullName}
               onChangeText={setFullName}
-              icon={<Feather name="user" size={16} color={COLORS.textMuted} />}
+              icon={<Feather name="user" size={16} color={COLORS.primary} />}
+              editable={true}
+              isEditing={isEditing}
             />
             <InputField
               label="EMAIL ADDRESS"
               value={email}
-              icon={<Feather name="mail" size={16} color={COLORS.textMuted} />}
-              editable={false}
+              icon={<Feather name="mail" size={16} color={COLORS.primary} />}
+              editable={true}
               keyboardType="email-address"
+              isEditing={isEditing}
             />
             <InputField
               label="PHONE NUMBER"
               value={phone}
               onChangeText={setPhone}
-              icon={<Feather name="phone" size={16} color={COLORS.textMuted} />}
+              icon={<Feather name="phone" size={16} color={COLORS.primary} />}
               keyboardType="phone-pad"
+              editable={true}
+              isEditing={isEditing}
             />
+
+            {/* Birth Date — calendar picker */}
+            <View style={styles.fieldWrap}>
+              <Text style={styles.fieldLabel}>BIRTH DATE</Text>
+              <TouchableOpacity
+                style={[styles.fieldInner, isEditing && styles.fieldInnerActive]}
+                onPress={() => { if (isEditing) { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setShowDatePicker(true); } }}
+                activeOpacity={isEditing ? 0.7 : 1}
+              >
+                <View style={styles.fieldIcon}>
+                  <Feather name="calendar" size={16} color={COLORS.primary} />
+                </View>
+                <Text style={[styles.fieldInput, { paddingTop: 2 }]}>{birthDate}</Text>
+                {isEditing && <Feather name="calendar" size={16} color={COLORS.text} />}
+              </TouchableOpacity>
+            </View>
+
             <InputField
               label="HUB LOCATION"
-              value="BGC Central Hub"
-              icon={<Feather name="home" size={16} color={COLORS.textMuted} />}
-              editable={false}
+              value="7-Eleven, España Blvd, Sampaloc, Manila"
+              icon={<Feather name="briefcase" size={16} color={COLORS.primary} />}
+              editable={true}
+              isEditing={isEditing}
             />
             <InputField
               label="HUB ADDRESS"
-              value="123 Ayala Ave, Makati City"
-              icon={<Feather name="map-pin" size={16} color={COLORS.textMuted} />}
-              editable={false}
+              value="Espana Blvd., Sampaloc Manila"
+              icon={<Feather name="map-pin" size={16} color={COLORS.primary} />}
+              editable={true}
+              isEditing={isEditing}
             />
+            <View style={styles.passwordLabelRow}>
+              <Text style={styles.fieldLabel}>PASSWORD</Text>
+              <TouchableOpacity onPress={() => setShowPasswordModal(true)}>
+                <Text style={styles.resetPasswordText}>Reset Password</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.fieldInner}>
+              <View style={styles.fieldIcon}>
+                <Feather name="lock" size={16} color={COLORS.primary} />
+              </View>
+              <Text style={styles.fieldInput}>••••••••••</Text>
+            </View>
           </View>
         )}
 
-        {activeTab === "id" && (
+        {activeTab === "compliance" && (
           <View style={styles.section}>
-            {/* ID Verification */}
             <View style={styles.idSectionHeader}>
               <View style={styles.idIconWrap}>
                 <Feather name="shield" size={18} color={COLORS.primary} />
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.idSectionTitle}>ID Verification</Text>
-                <Text style={styles.idSectionSubtitle}>Upload a valid government-issued ID for verification purposes.</Text>
+              <Text style={styles.sectionTitle}>Business Documents</Text>
+            </View>
+
+            {([
+              { key: "dti", label: "DTI / SEC REGISTRATION", icon: "briefcase", fileType: "Image" },
+              { key: "permit", label: "BUSINESS PERMIT (LGU)", icon: "file-text", fileType: "Image" },
+              { key: "location", label: "PROOF OF LOCATION", icon: "file", fileType: "PDF" },
+            ] as const).map((doc) => (
+              <View key={doc.key} style={styles.docGroup}>
+                <Text style={styles.fieldLabel}>{doc.label}</Text>
+                <View style={styles.docRow}>
+                  <View style={styles.docIconWrap}>
+                    <Feather name={doc.icon} size={18} color={COLORS.white} />
+                  </View>
+                  <View style={styles.docInfo}>
+                    <View style={styles.docVerifiedRow}>
+                      <Text style={styles.docVerifiedText}>Document Verified</Text>
+                      <Feather name="check-circle" size={14} color={COLORS.primary} />
+                    </View>
+                    <Text style={styles.docStoredAs}>Stored as {doc.fileType}</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={[styles.docRefreshBtn, refreshingDoc === doc.key && styles.docRefreshBtnActive]}
+                    onPressIn={() => setRefreshingDoc(doc.key)}
+                    onPressOut={() => setRefreshingDoc(null)}
+                    onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); pickDocument(doc.key); }}
+                    activeOpacity={0.7}
+                  >
+                    <Feather name="refresh-cw" size={16} color={refreshingDoc === doc.key ? COLORS.white : COLORS.primary} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.docRemoveBtn}
+                    onPress={() => { Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); setDocs((prev) => ({ ...prev, [doc.key]: null })); }}
+                    activeOpacity={0.7}
+                  >
+                    <Feather name="x" size={16} color={COLORS.red} />
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
-
-            <Text style={styles.fieldLabel}>GOVERNMENT ID</Text>
-            <TouchableOpacity style={styles.uploadBox} activeOpacity={0.75} onPress={() => pickImage(setGovIdUri)}>
-              {govIdUri
-                ? <Image source={{ uri: govIdUri }} style={styles.uploadPreview} resizeMode="cover" />
-                : <>
-                    <Feather name="upload" size={22} color={COLORS.primary} />
-                    <Text style={styles.uploadText}>Upload Photo</Text>
-                  </>
-              }
-            </TouchableOpacity>
-
-            {/* Work Schedule */}
-            <View style={styles.idSectionHeader}>
-              <View style={styles.idIconWrap}>
-                <Feather name="clock" size={18} color={COLORS.primary} />
-              </View>
-              <Text style={styles.idSectionTitle}>Work Schedule</Text>
-            </View>
-
-            <View style={styles.scheduleBox}>
-              <Text style={styles.scheduleLabel}>CURRENT SHIFT</Text>
-              <Text style={styles.scheduleValue}>Day Shift (8:00 AM - 5:00 PM)</Text>
-            </View>
-
-            <View style={styles.scheduleBox}>
-              <Text style={styles.scheduleLabel}>WORKING DAYS</Text>
-              <View style={styles.scheduleRow}>
-                <Feather name="calendar" size={13} color={COLORS.textSecondary} />
-                <Text style={styles.scheduleValue}>Mon - Sat</Text>
-              </View>
-            </View>
+            ))}
           </View>
         )}
 
         {activeTab === "preferences" && (
           <View style={styles.section}>
-            {/* Preferences header */}
+            {/* Header */}
             <View style={styles.prefHeader}>
               <View style={styles.prefIconWrap}>
-                <Feather name="bell" size={20} color={COLORS.primary} />
+                <Feather name="bell" size={26} color={COLORS.primary} />
               </View>
-              <Text style={styles.idSectionTitle}>Preferences</Text>
+              <Text style={styles.sectionTitle}>Account Preferences</Text>
             </View>
 
-            {[
-              { icon: "mail", label: "Email Notifications", sub: "Receive detailed reports via email.", key: "email" },
-              { icon: "message-square", label: "SMS Alerts", sub: "Get real-time text alerts.", key: "sms" },
-              { icon: "package", label: "Parcel Alerts", sub: "Notifications for incoming parcels.", key: "parcel" },
-            ].map((item) => (
-              <View key={item.key} style={styles.prefRow}>
-                <View style={styles.prefRowLeft}>
-                  <View style={styles.prefRowIcon}>
-                    <Feather name={item.icon as any} size={16} color={COLORS.primary} />
+            {/* Items card */}
+            <View style={styles.prefCard}>
+              {[
+                { icon: "mail", label: "Email Notifications", sub: "Receive parcel processing updates", key: "email" },
+                { icon: "message-square", label: "SMS Alerts", sub: "Get real-time hub notifications", key: "sms" },
+                { icon: "package", label: "Parcel Alerts", sub: "Alert when new parcels arrive", key: "parcel" },
+              ].map((item, idx, arr) => (
+                <View key={item.key} style={[styles.prefRow, idx < arr.length - 1 && styles.prefRowBorder]}>
+                  <View style={styles.prefRowLeft}>
+                    <Feather name={item.icon as any} size={20} color={COLORS.primary} />
+                    <View style={styles.prefRowText}>
+                      <Text style={styles.prefRowLabel}>{item.label}</Text>
+                      <Text style={styles.prefRowSub}>{item.sub}</Text>
+                    </View>
                   </View>
-                  <View style={styles.prefRowText}>
-                    <Text style={styles.prefRowLabel}>{item.label}</Text>
-                    <Text style={styles.prefRowSub}>{item.sub}</Text>
-                  </View>
+                  <Switch
+                    value={prefToggles[item.key as keyof typeof prefToggles]}
+                    onValueChange={(v) => {
+                      Haptics.selectionAsync();
+                      setPrefToggles((prev) => ({ ...prev, [item.key]: v }));
+                    }}
+                    trackColor={{ false: COLORS.border, true: COLORS.primary }}
+                    thumbColor={COLORS.white}
+                  />
                 </View>
-                <Switch
-                  value={prefToggles[item.key as keyof typeof prefToggles]}
-                  onValueChange={(v) => {
-                    Haptics.selectionAsync();
-                    setPrefToggles((prev) => ({ ...prev, [item.key]: v }));
-                  }}
-                  trackColor={{ false: COLORS.border, true: COLORS.primary }}
-                  thumbColor={COLORS.white}
-                />
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
         )}
       </ScrollView>
@@ -414,7 +590,8 @@ const styles = StyleSheet.create({
   },
   scroll: {
     padding: 16,
-    gap: 16,
+    paddingTop: 12,
+    gap: 12,
   },
   pageTitle: {
     fontSize: 22,
@@ -484,12 +661,10 @@ const styles = StyleSheet.create({
   },
   tabsRow: {
     flexDirection: "row",
-    backgroundColor: COLORS.cardBg,
-    borderRadius: 12,
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: 14,
     padding: 4,
-    gap: 4,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    gap: 2,
   },
   tabBtn: {
     flex: 1,
@@ -498,18 +673,24 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   tabBtnActive: {
-    backgroundColor: COLORS.background,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    backgroundColor: COLORS.cardBg,
+    borderRadius: 10,
+    shadowColor: COLORS.shadow,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 1,
+    shadowRadius: 4,
+    elevation: 2,
   },
   tabBtnText: {
     fontSize: 12,
     fontFamily: "Poppins_500Medium",
-    color: COLORS.textMuted,
+    color: COLORS.primary,
+    opacity: 0.5,
   },
   tabBtnTextActive: {
-    fontFamily: "Poppins_600SemiBold",
-    color: COLORS.text,
+    fontFamily: "Poppins_700Bold",
+    color: COLORS.primary,
+    opacity: 1,
   },
   section: {
     backgroundColor: COLORS.cardBg,
@@ -523,28 +704,50 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 22,
     fontFamily: "Poppins_700Bold",
     color: COLORS.text,
     marginBottom: 4,
+  },
+  sectionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  editBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: COLORS.primaryLight,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  editBtnActive: {
+    backgroundColor: "#FEE2E2",
   },
   fieldWrap: {
     gap: 6,
   },
   fieldLabel: {
-    fontSize: 10,
-    fontFamily: "Poppins_600SemiBold",
-    color: COLORS.textMuted,
-    letterSpacing: 0.5,
+    fontSize: 11,
+    fontFamily: "Poppins_700Bold",
+    color: COLORS.primary,
+    letterSpacing: 0.8,
   },
   fieldInner: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: COLORS.background,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
     gap: 10,
+    borderWidth: 1.5,
+    borderColor: "transparent",
+  },
+  fieldInnerActive: {
+    borderColor: COLORS.primary,
   },
   fieldIcon: {
     width: 20,
@@ -552,9 +755,99 @@ const styles = StyleSheet.create({
   },
   fieldInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: "Poppins_400Regular",
     color: COLORS.text,
+  },
+  passwordLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  resetPasswordText: {
+    fontSize: 12,
+    fontFamily: "Poppins_600SemiBold",
+    color: COLORS.primary,
+  },
+
+  /* Calendar */
+  calendarSheet: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: COLORS.cardBg,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingBottom: 36,
+    gap: 4,
+  },
+  calHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  calMonthYear: {
+    fontSize: 15,
+    fontFamily: "Poppins_700Bold",
+    color: COLORS.text,
+  },
+  calDayNames: {
+    flexDirection: "row",
+    marginBottom: 4,
+  },
+  calDayName: {
+    flex: 1,
+    textAlign: "center",
+    fontSize: 12,
+    fontFamily: "Poppins_600SemiBold",
+    color: COLORS.textMuted,
+    paddingVertical: 4,
+  },
+  calWeek: {
+    flexDirection: "row",
+  },
+  calDay: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  calDaySelected: {
+    backgroundColor: COLORS.blue,
+    borderRadius: 8,
+  },
+  calDayText: {
+    fontSize: 14,
+    fontFamily: "Poppins_500Medium",
+    color: COLORS.text,
+  },
+  calDayTextOther: {
+    color: COLORS.textMuted,
+  },
+  calDayTextSelected: {
+    color: COLORS.white,
+    fontFamily: "Poppins_700Bold",
+  },
+  calDayTextToday: {
+    color: COLORS.primary,
+    fontFamily: "Poppins_700Bold",
+  },
+  calFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 4,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  calFooterBtn: {
+    fontSize: 14,
+    fontFamily: "Poppins_600SemiBold",
+    color: COLORS.primary,
   },
   emptyTabState: {
     alignItems: "center",
@@ -583,8 +876,8 @@ const styles = StyleSheet.create({
   twoFAText: {
     flex: 1,
     fontSize: 14,
-    fontFamily: "Poppins_500Medium",
-    color: COLORS.text,
+    fontFamily: "Poppins_600SemiBold",
+    color: COLORS.primary,
   },
   bottomActions: {
     flexDirection: "row",
@@ -698,47 +991,94 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
 
+  /* Compliance */
+  docGroup: { gap: 6 },
+  docRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.background,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 10,
+  },
+  docIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: COLORS.primary,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  docInfo: { flex: 1, gap: 2 },
+  docVerifiedRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  docVerifiedText: { fontSize: 13, fontFamily: "Poppins_600SemiBold", color: COLORS.text },
+  docStoredAs: { fontSize: 11, fontFamily: "Poppins_400Regular", color: COLORS.textSecondary },
+  docRefreshBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: COLORS.primary,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.cardBg,
+  },
+  docRefreshBtnActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  docRemoveBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: COLORS.redLight,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: COLORS.cardBg,
+  },
+
   /* Preferences */
   prefHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    marginBottom: 8,
+    gap: 14,
+    marginBottom: 4,
   },
   prefIconWrap: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 52,
+    height: 52,
+    borderRadius: 16,
     backgroundColor: COLORS.primaryLight,
     alignItems: "center",
     justifyContent: "center",
+  },
+  prefCard: {
+    backgroundColor: COLORS.background,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 4,
   },
   prefRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    paddingVertical: 16,
+  },
+  prefRowBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
   },
   prefRowLeft: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 14,
     flex: 1,
-  },
-  prefRowIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    alignItems: "center",
-    justifyContent: "center",
   },
   prefRowText: {
     flex: 1,
-    gap: 2,
+    gap: 3,
   },
   prefRowLabel: {
     fontSize: 14,
@@ -746,7 +1086,7 @@ const styles = StyleSheet.create({
     color: COLORS.text,
   },
   prefRowSub: {
-    fontSize: 11,
+    fontSize: 12,
     fontFamily: "Poppins_400Regular",
     color: COLORS.textSecondary,
   },

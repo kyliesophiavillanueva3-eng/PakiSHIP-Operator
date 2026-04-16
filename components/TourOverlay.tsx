@@ -148,11 +148,11 @@ export function TourOverlay({ visible, steps, onClose, initialStep = 0 }: TourOv
         {(stepIdx > 0 || current.onBack) ? (
           <TouchableOpacity style={styles.backBtn} onPress={handleBack} activeOpacity={0.75}>
             <Feather name="arrow-left" size={14} color={COLORS.primary} />
-            <Text style={styles.backText}>BACK</Text>
+            <Text style={styles.backText}>Back</Text>
           </TouchableOpacity>
         ) : <View style={{ flex: 1 }} />}
         <TouchableOpacity style={styles.nextBtn} onPress={handleNext} activeOpacity={0.85}>
-          <Text style={styles.nextText}>{showFinish ? "FINISH" : "NEXT"}</Text>
+          <Text style={styles.nextText}>{showFinish ? "Finish" : "Next"}</Text>
           <Feather name="arrow-right" size={14} color={COLORS.white} />
         </TouchableOpacity>
       </View>
@@ -175,7 +175,7 @@ export function TourOverlay({ visible, steps, onClose, initialStep = 0 }: TourOv
         )}
       </Animated.View>
 
-      {/* Spotlight border */}
+      {/* Spotlight — teal border around cutout */}
       {sr && (
         <Animated.View pointerEvents="none" style={[styles.spotlightBorder, {
           top: sr.y - pad, left: sr.x - pad,
@@ -211,34 +211,35 @@ export async function shouldShowTour(): Promise<boolean> {
 const cardBase = {
   width: "100%" as const,
   backgroundColor: COLORS.cardBg,
-  paddingHorizontal: 24,
-  paddingVertical: 20,
-  gap: 10 as const,
+  paddingHorizontal: 28,
+  paddingVertical: 28,
+  gap: 12 as const,
+  borderRadius: 28,
 };
 
 const styles = StyleSheet.create({
   overlayContainer: { ...StyleSheet.absoluteFillObject },
-  block: { position: "absolute", backgroundColor: "rgba(0,0,0,0.62)" },
+  block: { position: "absolute", backgroundColor: "rgba(4,22,20,0.6)" },
   spotlightBorder: { position: "absolute", borderRadius: 18, borderWidth: 2.5, borderColor: COLORS.white },
 
-  topContainer: { position: "absolute", top: 0, left: 0, right: 0, alignItems: "center" },
+  topContainer: { position: "absolute", top: 0, left: 0, right: 0, alignItems: "center", paddingHorizontal: 16, paddingTop: 16 },
   mascotTop: { width: 110, height: 110, zIndex: 10, marginBottom: -10 },
-  cardTopStyle: { ...cardBase, borderBottomLeftRadius: 28, borderBottomRightRadius: 28 },
+  cardTopStyle: { ...cardBase },
 
-  bottomContainer: { position: "absolute", bottom: 0, left: 0, right: 0, alignItems: "center" },
-  mascotBottom: { width: 120, height: 120, marginBottom: -22, zIndex: 10 },
-  cardBottomStyle: { ...cardBase, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingBottom: 44 },
+  bottomContainer: { position: "absolute", bottom: 0, left: 0, right: 0, alignItems: "center", paddingHorizontal: 16, paddingBottom: 24 },
+  mascotBottom: { width: 130, height: 130, marginBottom: -28, zIndex: 10 },
+  cardBottomStyle: { ...cardBase, paddingBottom: 36 },
 
   cardHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   stepBadge: { backgroundColor: COLORS.primaryLight, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 5 },
-  stepText: { fontSize: 11, fontFamily: "Poppins_600SemiBold", color: COLORS.primary, letterSpacing: 0.3 },
+  stepText: { fontSize: 9, fontFamily: "Poppins_600SemiBold", color: COLORS.primary, letterSpacing: 0.5, textTransform: "uppercase" },
   closeBtn: { width: 28, height: 28, alignItems: "center", justifyContent: "center" },
   title: { fontSize: 22, fontFamily: "Poppins_700Bold", color: COLORS.text },
   body: { fontSize: 14, fontFamily: "Poppins_400Regular", color: COLORS.textSecondary, lineHeight: 22 },
   divider: { height: 1, backgroundColor: COLORS.border, marginVertical: 4 },
   actions: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 4 },
   backBtn: { flex: 1, flexDirection: "row", alignItems: "center", gap: 6 },
-  backText: { fontSize: 13, fontFamily: "Poppins_600SemiBold", color: COLORS.primary },
-  nextBtn: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: COLORS.primary, borderRadius: 24, paddingVertical: 12, paddingHorizontal: 24 },
-  nextText: { fontSize: 14, fontFamily: "Poppins_700Bold", color: COLORS.white, letterSpacing: 0.3 },
+  backText: { fontSize: 12, fontFamily: "Poppins_700Bold", color: COLORS.primary, letterSpacing: 0.5, textTransform: "uppercase" },
+  nextBtn: { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: COLORS.primary, borderRadius: 24, paddingVertical: 11, paddingHorizontal: 22 },
+  nextText: { fontSize: 12, fontFamily: "Poppins_700Bold", color: COLORS.white, letterSpacing: 0.5, textTransform: "uppercase" },
 });
